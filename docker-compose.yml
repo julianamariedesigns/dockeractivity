@@ -1,0 +1,61 @@
+services:
+  products-db:
+    build:  # Build from the Dockerfile in the specified context
+      context: ./db/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - app-net
+    restart: always
+    scale: 1
+    cpus: 1
+    mem_limit: 250m
+
+  products-api:
+    build:
+      context: ./products-api/java 
+    environment:
+      - PRICE_FACTOR=1.5
+    networks:
+      - app-net
+    depends_on:
+      - products-db
+    restart: always
+    scale: 2
+    cpus: 0.5
+    mem_limit: 400m
+
+  stock-api:
+    build:
+      context: ./stock-api/golang  
+    networks:
+      - app-net
+    depends_on:
+      - products-db
+    restart: always
+    scale: 3
+    cpus: 0.25
+    mem_limit: 100m
+
+  web:
+    build:
+      context: ./web/dotnet 
+    environment:
+      - Widgetario__Theme=dark
+    volumes:
+      - ./config/web:/app/config
+      - ./logs/web:/logs
+    ports:
+      - "8080:80"
+    networks:
+      - app-net
+    depends_on:
+      - products-api
+      - stock-api
+    restart: always
+    scale: 1
+    cpus: 0.5
+    mem_limit: 300m
+
+networks:
+  app-net:
