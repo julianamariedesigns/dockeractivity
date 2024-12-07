@@ -1,19 +1,25 @@
+version: '3.8'
+
 services:
   products-db:
-    build:  # Build from the Dockerfile in the specified context
-      context: ./db/postgres
+    image: julescruz10015482/products-db-1:latest  # Correctly referencing the pre-built image
     ports:
       - "5432:5432"
     networks:
       - app-net
     restart: always
-    scale: 1
-    cpus: 1
-    mem_limit: 250m
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 250M
+      placement:
+        constraints:
+          - node.role == manager
 
   products-api:
-    build:
-      context: ./products-api/java 
+    image: julescruz10015482/products-api-1:latest  # Correctly referencing the pre-built image
     environment:
       - PRICE_FACTOR=1.5
     networks:
@@ -21,25 +27,35 @@ services:
     depends_on:
       - products-db
     restart: always
-    scale: 2
-    cpus: 0.5
-    mem_limit: 400m
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 400M
+      placement:
+        constraints:
+          - node.role == manager
 
   stock-api:
-    build:
-      context: ./stock-api/golang  
+    image: julescruz10015482/stock-api-1:latest  # Correctly referencing the pre-built image
     networks:
       - app-net
     depends_on:
       - products-db
     restart: always
-    scale: 3
-    cpus: 0.25
-    mem_limit: 100m
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 100M
+      placement:
+        constraints:
+          - node.role == manager
 
   web:
-    build:
-      context: ./web/dotnet 
+    image: julescruz10015482/web-1:latest  # Correctly referencing the pre-built image
     environment:
       - Widgetario__Theme=dark
     volumes:
@@ -53,9 +69,16 @@ services:
       - products-api
       - stock-api
     restart: always
-    scale: 1
-    cpus: 0.5
-    mem_limit: 300m
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 300M
+      placement:
+        constraints:
+          - node.role == manager
 
 networks:
   app-net:
+    driver: overlay  # Use overlay for Swarm mode
